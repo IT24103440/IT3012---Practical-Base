@@ -53,22 +53,22 @@ class VisualGridHuntGame:
         self.steps = 0
         self.collision = False
 
-def get_percept(self):
-    x, y = self.agent_pos
+    def get_percept(self):
+        x, y = self.agent_pos
+    
+        # Assume agent always looks in the direction of its last move
+        ahead = (x + 1, y)
+    
+        wall_ahead = (
+            ahead[0] >= self.width or
+            ahead in self.walls
+        )
 
-    # Assume agent always looks in the direction of its last move
-    ahead = (x + 1, y)
-
-    wall_ahead = (
-        ahead[0] >= self.width or
-        ahead in self.walls
-    )
-
-    return {
-        "food_here": (x, y) in self.food_positions,
-        "toxin_here": (x, y) in self.toxic_traps,
-        "wall_ahead": wall_ahead
-    }
+        return {
+            "food_here": (x, y) in self.food_positions,
+            "toxin_here": (x, y) in self.toxic_traps,
+            "wall_ahead": wall_ahead
+        }
 
     def execute_action(self, action: str):
         self.steps += 1
