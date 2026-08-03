@@ -129,6 +129,38 @@ class SimpleReflexAgent:
 
         else:
             return "Right"
+
+
+class ModelBasedAgent:
+
+    def __init__(self):
+        self.visited = set()
+        self.last_action = "Right"
+
+    def sense_and_act(self, percept):
+
+        self.visited.add(tuple(percept.values()))
+
+        if percept["food_here"]:
+            return "Stay"
+
+        if percept["wall_ahead"]:
+
+            if self.last_action == "Right":
+                self.last_action = "Up"
+                return "Up"
+
+            elif self.last_action == "Up":
+                self.last_action = "Left"
+                return "Left"
+
+            else:
+                self.last_action = "Down"
+                return "Down"
+
+        self.last_action = "Right"
+        return "Right"
+        
             
 
 class GridGameGUI:
@@ -145,7 +177,7 @@ class GridGameGUI:
             num_opponents=num_opponents,
             custom_walls=walls
         )
-        self.agent = SimpleReflexAgent()
+        self.agent = ModelBasedAgent()
 
         # Dynamically calculate cell size so the total canvas fits nicely within a 600x600 window ceiling
         max_canvas_dim = 600
