@@ -157,7 +157,7 @@ class SearchAgent:
         # Create a new plan if current plan is empty
         if not self.plan:
 
-            start = percept['agent_pos']
+            start = tuple(percept['agent_pos'])
 
             foods = percept['all_food']
 
