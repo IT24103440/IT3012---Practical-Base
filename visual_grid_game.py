@@ -77,6 +77,10 @@ class VisualGridHuntGame:
         }
 
     def execute_action(self, action: str):
+    
+        if action is None:
+            return
+    
         self.steps += 1
         new_pos = list(self.agent_pos)
 
@@ -308,7 +312,8 @@ class GridGameGUI:
                 percept = self.env.get_percept()
                 action = self.agent.sense_and_act(percept)
                 
-                self.env.execute_action(action)
+                if action is not None:
+                    self.env.execute_action(action)
 
                 self.draw_grid()
 
