@@ -1,5 +1,3 @@
-# agent.py
-
 import random
 from collections import deque
 import heapq
@@ -12,7 +10,6 @@ class GreedyGridAgent:
         self.actions_pool = ['Up', 'Down', 'Left', 'Right']
 
     def sense_and_act(self, percept: dict) -> str:
-        pos = percept['agent_pos']
         return random.choice(self.actions_pool)
 
 
@@ -21,15 +18,16 @@ class SearchAgent:
 
     def __init__(self):
         self.plan = []
-        self.active_algo = 'BFS'
+        self.active_algo = 'DFS'
 
     def get_neighbors(self, state, grid_size, walls):
         x, y = state
         width, height = grid_size
 
+        # These directions MUST match execute_action()
         moves = [
-            ((x, y - 1), 'Up'),
-            ((x, y + 1), 'Down'),
+            ((x, y + 1), 'Up'),
+            ((x, y - 1), 'Down'),
             ((x - 1, y), 'Left'),
             ((x + 1, y), 'Right')
         ]
@@ -39,15 +37,19 @@ class SearchAgent:
         for new_state, action in moves:
             nx, ny = new_state
 
+            # Check grid boundaries
             if 0 <= nx < width and 0 <= ny < height:
+
+                # Check walls
                 if new_state not in walls:
                     neighbors.append((new_state, action))
 
         return neighbors
 
-    # -------------------------
+    # =========================================================
     # BFS
-    # -------------------------
+    # =========================================================
+
     def bfs_search(self, start, goal, grid_size, walls):
 
         frontier = deque()
@@ -56,27 +58,37 @@ class SearchAgent:
         reached = {start}
 
         while frontier:
+
             state, path = frontier.popleft()
 
+            # Goal reached
             if state == goal:
                 return path
 
             for next_state, action in self.get_neighbors(
-                state, grid_size, walls
+                state,
+                grid_size,
+                walls
             ):
+
                 if next_state not in reached:
 
                     reached.add(next_state)
 
                     frontier.append(
-                        (next_state, path + [action])
+                        (
+                            next_state,
+                            path + [action]
+                        )
                     )
 
+        # No path found
         return []
 
-    # -------------------------
+    # =========================================================
     # DFS
-    # -------------------------
+    # =========================================================
+
     def dfs_search(self, start, goal, grid_size, walls):
 
         frontier = []
@@ -85,50 +97,66 @@ class SearchAgent:
         reached = {start}
 
         while frontier:
+
             state, path = frontier.pop()
 
+            # Goal reached
             if state == goal:
                 return path
 
             for next_state, action in self.get_neighbors(
-                state, grid_size, walls
+                state,
+                grid_size,
+                walls
             ):
+
                 if next_state not in reached:
 
                     reached.add(next_state)
 
                     frontier.append(
-                        (next_state, path + [action])
+                        (
+                            next_state,
+                            path + [action]
+                        )
                     )
 
+        # No path found
         return []
 
-    # -------------------------
+    # =========================================================
     # UCS
-    # -------------------------
+    # =========================================================
+
     def ucs_search(self, start, goal, grid_size, walls):
 
         frontier = []
 
-        # cost, state, path
+        # (cost, state, path)
         heapq.heappush(
             frontier,
             (0, start, [])
         )
 
-        reached = {start: 0}
+        reached = {
+            start: 0
+        }
 
         while frontier:
 
             cost, state, path = heapq.heappop(frontier)
 
+            # Goal reached
             if state == goal:
                 return path
 
             for next_state, action in self.get_neighbors(
-                state, grid_size, walls
+                state,
+                grid_size,
+                walls
             ):
 
+                # Every movement has cost 1
                 new_cost = cost + 1
 
                 if (
@@ -147,14 +175,16 @@ class SearchAgent:
                         )
                     )
 
+        # No path found
         return []
 
-    # -------------------------
-    # Sense and Act
-    # -------------------------
+    # =========================================================
+    # SENSE AND ACT
+    # =========================================================
+
     def sense_and_act(self, percept: dict) -> str:
 
-        # Create a new plan if current plan is empty
+        # Create a new plan when the current plan is empty
         if not self.plan:
 
             start = tuple(percept['agent_pos'])
@@ -165,7 +195,14 @@ class SearchAgent:
             if not foods:
                 return None
 
-            # Find closest food using Manhattan distance
+            grid_size = percept['grid_size']
+
+            walls = set(percept['walls'])
+
+            # -------------------------------------------------
+            # Find the closest food using Manhattan distance
+            # -------------------------------------------------
+
             goal = min(
                 foods,
                 key=lambda food:
@@ -173,10 +210,10 @@ class SearchAgent:
                 abs(food[1] - start[1])
             )
 
-            grid_size = percept['grid_size']
-            walls = set(percept['walls'])
-
+            # -------------------------------------------------
             # Select search algorithm
+            # -------------------------------------------------
+
             if self.active_algo == 'BFS':
 
                 self.plan = self.bfs_search(
@@ -204,8 +241,16 @@ class SearchAgent:
                     walls
                 )
 
-        # Execute the next action
+            else:
+                print("Invalid search algorithm:", self.active_algo)
+                return None
+
+        # -----------------------------------------------------
+        # Execute the next action from the plan
+        # -----------------------------------------------------
+
         if self.plan:
             return self.plan.pop(0)
 
+        # No path available
         return None
