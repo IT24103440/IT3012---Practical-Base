@@ -1,6 +1,7 @@
 import random
 from collections import deque
 import heapq
+import math
 
 
 class GreedyGridAgent:
@@ -14,11 +15,14 @@ class GreedyGridAgent:
 
 
 class SearchAgent:
-    """Goal-based agent using BFS, DFS, or UCS."""
+    """Goal-based agent using BFS, DFS, UCS, or A*."""
 
     def __init__(self):
         self.plan = []
-        self.active_algo = 'DFS'
+
+        # Practical 04:
+        # Use A* as the active search algorithm
+        self.active_algo = 'AStar'
 
     def get_neighbors(self, state, grid_size, walls):
         x, y = state
@@ -45,6 +49,39 @@ class SearchAgent:
                     neighbors.append((new_state, action))
 
         return neighbors
+
+    # =========================================================
+    # HEURISTIC FUNCTIONS
+    # =========================================================
+
+    def manhattan_distance(self, pos, goal):
+        """
+        Calculate Manhattan distance between two positions.
+
+        Formula:
+        h(n) = |x1 - x2| + |y1 - y2|
+        """
+
+        x1, y1 = pos
+        x2, y2 = goal
+
+        return abs(x1 - x2) + abs(y1 - y2)
+
+    def euclidean_distance(self, pos, goal):
+        """
+        Calculate Euclidean distance between two positions.
+
+        Formula:
+        h(n) = sqrt((x1 - x2)^2 + (y1 - y2)^2)
+        """
+
+        x1, y1 = pos
+        x2, y2 = goal
+
+        return math.sqrt(
+            (x1 - x2) ** 2 +
+            (y1 - y2) ** 2
+        )
 
     # =========================================================
     # BFS
@@ -179,6 +216,148 @@ class SearchAgent:
         return []
 
     # =========================================================
+    # A* SEARCH
+    # =========================================================
+
+    def astar_search(
+        self,
+        start_pos,
+        goal_pos,
+        walls,
+        grid_size,
+        heuristic_type='manhattan'
+    ):
+        """
+        A* Search Algorithm.
+
+        f(n) = g(n) + h(n)
+
+        g(n) = path cost from start to current node
+        h(n) = estimated cost from current node to goal
+        f(n) = estimated total cost
+        """
+
+        # Priority queue
+        frontier = []
+
+        # Set of already explored states
+        reached_states = set()
+
+        # -----------------------------------------------------
+        # Calculate heuristic for the starting position
+        # -----------------------------------------------------
+
+        if heuristic_type == 'euclidean':
+
+            h_cost = self.euclidean_distance(
+                start_pos,
+                goal_pos
+            )
+
+        else:
+
+            h_cost = self.manhattan_distance(
+                start_pos,
+                goal_pos
+            )
+
+        # Starting node:
+        # (f_cost, g_cost, current_pos, path_taken)
+        heapq.heappush(
+            frontier,
+            (
+                h_cost,
+                0,
+                start_pos,
+                []
+            )
+        )
+
+        # -----------------------------------------------------
+        # A* main loop
+        # -----------------------------------------------------
+
+        while frontier:
+
+            (
+                f_cost,
+                g_cost,
+                current_pos,
+                path_taken
+            ) = heapq.heappop(frontier)
+
+            # -------------------------------------------------
+            # Goal test
+            # -------------------------------------------------
+
+            if current_pos == goal_pos:
+                return path_taken
+
+            # Skip if already explored
+            if current_pos in reached_states:
+                continue
+
+            # Mark current state as reached
+            reached_states.add(current_pos)
+
+            # -------------------------------------------------
+            # Expand neighboring nodes
+            # -------------------------------------------------
+
+            for next_pos, action in self.get_neighbors(
+                current_pos,
+                grid_size,
+                walls
+            ):
+
+                if next_pos not in reached_states:
+
+                    # Every movement costs 1
+                    new_g_cost = g_cost + 1
+
+                    # -----------------------------------------
+                    # Calculate h(n)
+                    # -----------------------------------------
+
+                    if heuristic_type == 'euclidean':
+
+                        new_h_cost = self.euclidean_distance(
+                            next_pos,
+                            goal_pos
+                        )
+
+                    else:
+
+                        new_h_cost = self.manhattan_distance(
+                            next_pos,
+                            goal_pos
+                        )
+
+                    # -----------------------------------------
+                    # Calculate f(n)
+                    # f(n) = g(n) + h(n)
+                    # -----------------------------------------
+
+                    new_f_cost = (
+                        new_g_cost +
+                        new_h_cost
+                    )
+
+                    # Add neighbor to priority queue
+                    heapq.heappush(
+                        frontier,
+                        (
+                            new_f_cost,
+                            new_g_cost,
+                            next_pos,
+                            path_taken + [action]
+                        )
+                    )
+
+        # No path found
+        return []
+
+    # =========================================================
     # SENSE AND ACT
     # =========================================================
 
@@ -206,8 +385,10 @@ class SearchAgent:
             goal = min(
                 foods,
                 key=lambda food:
-                abs(food[0] - start[0]) +
-                abs(food[1] - start[1])
+                self.manhattan_distance(
+                    start,
+                    food
+                )
             )
 
             # -------------------------------------------------
@@ -241,8 +422,23 @@ class SearchAgent:
                     walls
                 )
 
+            elif self.active_algo == 'AStar':
+
+                self.plan = self.astar_search(
+                    start,
+                    goal,
+                    walls,
+                    grid_size,
+                    heuristic_type='manhattan'
+                )
+
             else:
-                print("Invalid search algorithm:", self.active_algo)
+
+                print(
+                    "Invalid search algorithm:",
+                    self.active_algo
+                )
+
                 return None
 
         # -----------------------------------------------------
@@ -254,3 +450,35 @@ class SearchAgent:
 
         # No path available
         return None
+
+
+# =============================================================
+# PRACTICAL 04 - HEURISTIC TESTING CHECKPOINT
+# =============================================================
+
+if __name__ == "__main__":
+
+    agent = SearchAgent()
+
+    start_position = (0, 0)
+    goal_position = (3, 4)
+
+    manhattan_result = agent.manhattan_distance(
+        start_position,
+        goal_position
+    )
+
+    euclidean_result = agent.euclidean_distance(
+        start_position,
+        goal_position
+    )
+
+    print(
+        "Manhattan Distance:",
+        manhattan_result
+    )
+
+    print(
+        "Euclidean Distance:",
+        euclidean_result
+    )
